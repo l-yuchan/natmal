@@ -1,0 +1,2 @@
+# natmal
+Wordle in korean
