@@ -6,6 +6,7 @@ import {
   assembleJamo,
 } from "./jamoutil";
 import { getWordList, getWordDict } from "./dict";
+import endingMessage from "./assets/endingMessage.json";
 
 type CellState = "unchecked" | "correct" | "malposition" | "absent";
 
@@ -71,22 +72,59 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
     nextFocus = false;
     updateFocusTimeout();
     if ((await getWordList()).includes(input)) {
-      completeRow(guessCount, inputBuffer, await getAnswer(Date.now()));
+      const completeResult = completeRow(guessCount, inputBuffer, await getAnswer(Date.now()));
+      const keyboardState = new Map<string, CellState>();
+      for (let i = 0; i < completeResult.length; i++) {
+        if (keyboardState.get(inputBuffer[i]!) === "correct") {
+          continue;
+        }
+        if (keyboardState.get(inputBuffer[i]!) === "malposition" && completeResult[i] !== "correct") {
+          continue;
+        }
+        keyboardState.set(inputBuffer[i]!, completeResult[i]!);
+      }
+      console.log(keyboardState);
+      updateKeyboard(keyboardState);
       inputBuffer.length = 0;
       const correct_answer = await getAnswer(Date.now());
-      if (input === correct_answer || guessCount >= 5) {
+      if (input === correct_answer) { // win
         gameState = "end";
+
+        const any_message = document.getElementById("any-message")!;
         const correct_answer_message =
           document.getElementById("correct-answer")!;
         const answer_meaning_message =
           document.getElementById("answer-meaning")!;
+
         const wordDict = await getWordDict();
+
+        const messages = endingMessage.slice(guessCount, 5).flat();
+        any_message.textContent =
+          messages[Math.floor(Math.random() * messages.length)] ?? "";
         correct_answer_message.textContent = `${correct_answer}`;
         answer_meaning_message.textContent = `${wordDict[correct_answer]}`;
-      } else {
+      } else if (guessCount >= 4) { // lose
+        gameState = "end";
+
+        const any_message = document.getElementById("any-message")!;
+        const correct_answer_message =
+          document.getElementById("correct-answer")!;
+        const answer_meaning_message =
+          document.getElementById("answer-meaning")!;
+
+        const wordDict = await getWordDict();
+
+        const messages = endingMessage[5]!;
+        any_message.textContent =
+          messages[Math.floor(Math.random() * messages.length)] ?? "";
+        correct_answer_message.textContent = `${correct_answer}`;
+        answer_meaning_message.textContent = `${wordDict[correct_answer]}`;
+      } else { // next guess
         guessCount++;
+        const any_message = document.getElementById("any-message")!;
+        any_message.textContent = "";
       }
-    } else {
+    } else { // invalid guess
       const message = document.getElementById("any-message")!;
       message.textContent = "단어를 찾을 수 없습니다.";
     }
@@ -117,12 +155,12 @@ function updateRow(rowId: number, inputBuffer: string[]) {
  * @param answer
  * @returns
  */
-function completeRow(rowId: number, inputBuffer: string[], answer: string) {
+function completeRow(rowId: number, inputBuffer: string[], answer: string): CellState[] {
   const inputString = inputBuffer.join("");
   const answerCompat = jamoToCompat(answer.normalize("NFD"));
   let state: CellState[] = [];
   const letterCounter = new Map<string, number>(); // malposition 표시 가능한 개수
-  
+
   for (let i = 0; i < inputString.length; i++) {
     if (inputString[i] === answerCompat[i]) {
       state.push("correct");
@@ -145,7 +183,7 @@ function completeRow(rowId: number, inputBuffer: string[], answer: string) {
   for (let i = 0; i < 6; i++) {
     const cell = row.children[i] as HTMLTableCellElement;
     cell.classList.remove("unchecked");
-    
+
     if (
       state[i] === "malposition" &&
       (letterCounter.get(inputString[i]!) ?? 0) <= 0
@@ -157,10 +195,28 @@ function completeRow(rowId: number, inputBuffer: string[], answer: string) {
         (letterCounter.get(inputString[i]!) ?? 0) - 1,
       );
     }
-    
+
     cell.classList.add(state[i]!);
   }
   return state;
+}
+
+function updateKeyboard(stateAppend: Map<string, CellState>) {
+  for (const [key, value] of stateAppend.entries()) {
+    const cell = document.getElementById(`key-${key}`);
+
+    if (!cell) {
+      continue;
+    }
+    
+    cell.classList.remove("unchecked");
+    if (cell.classList.contains("correct")) {
+      continue;
+    } else if (cell.classList.contains("malposition") && value !== "correct") {
+      continue;
+    }
+    cell.classList.add(value);
+  }
 }
 
 function updateFocusTimeout() {

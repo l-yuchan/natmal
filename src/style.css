@@ -141,7 +141,6 @@
             justify-content: center;
 
             .keyboard-key-input {
-                font-size: 1em;
                 flex: 1;
                 height: 100%;
                 width: 100%;
@@ -150,6 +149,32 @@
                 justify-content: center;
                 overflow: visible;
                 border: 1px solid #ccc;
+                container-type: inline-size;
+
+                .keyboard-key-text {
+                    overflow: visible;
+                    font-size: max(1.2em, 1em + 7cqw);
+                }
+
+                &.unchecked {
+                    background-color: #fff;
+                    color: #000;
+                }
+    
+                &.correct {
+                    background-color: #108f10;
+                    color: #fff;
+                }
+    
+                &.malposition {
+                    background-color: #ccaa00;
+                    color: #fff;
+                }
+    
+                &.absent {
+                    background-color: #444;
+                    color: #fff;
+                }
             }
 
             .keyboard-key-child {
