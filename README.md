@@ -1,2 +1,6 @@
-# natmal
-Wordle in korean
+# 낱;말 (natmal)
+Wordle, 그런데 한국어인.
+
+한국어 Wordle이 꽤 많은데, 하나쯤 더 생긴다고 별일 안 생기죠.
+
+오랜마네 AI (거의) 안 쓰고 만드러봐씁니다.
