@@ -2,21 +2,19 @@ import "./style.css";
 import {
   jamoToCompat,
   alphabetToJamo,
-  composeJamo,
-  assembleJamo,
 } from "./jamoutil";
 import { getWordList, getWordDict } from "./dict";
 import endingMessage from "./assets/endingMessage.json";
-
-type CellState = "unchecked" | "correct" | "malposition" | "absent";
+import { NatmalGame, CellState } from "./natmal";
 
 let gameState: "playing" | "end" = "playing";
 let nextFocus = false; // if true, do not allow composing(ㄹ+ㅁ -> ㄻ)
 let focusTimeoutId: number | undefined;
-let guessCount = 0;
 
-// korean keyboard input -> buffer
-const inputBuffer: string[] = [];
+let game: NatmalGame | undefined = new NatmalGame(
+  await getDailyAnswer(Date.now()),
+  await getWordList(),
+);
 
 window.addEventListener("keydown", async (event: KeyboardEvent) => {
   if (
@@ -40,8 +38,8 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
   // 공포의 겹겹이 지옥! ㅗ+ㅐ=ㅙ 저한테 이러시는 건데요 아아악
 
   if (event.key === "Backspace") {
-    inputBuffer.pop();
-    updateRow(guessCount, inputBuffer);
+    game.backspaceAnswer();
+    updateRow(game.getGuessCount(), game.getAnswerBuffer());
     nextFocus = false;
     updateFocusTimeout();
     event.preventDefault();
@@ -51,82 +49,74 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
     event.preventDefault();
     return;
   } else if (/^[a-zA-Z]$/.test(event.key)) {
-    const input = jamoToCompat(alphabetToJamo(event.key));
-    const composeCandidate = composeJamo(
-      inputBuffer[inputBuffer.length - 1] + input,
-    );
-    if (!nextFocus && inputBuffer.length != 0 && composeCandidate.length == 1) {
-      inputBuffer[inputBuffer.length - 1] = composeCandidate[0]!;
-    } else if (inputBuffer.length < 6) {
-      inputBuffer.push(input);
-    }
+    const jamo = jamoToCompat(alphabetToJamo(event.key));
+    game.appendAnswer(jamo, !nextFocus);
 
     nextFocus = false;
     updateFocusTimeout();
-    updateRow(guessCount, inputBuffer);
+    updateRow(game.getGuessCount(), game.getAnswerBuffer());
     event.preventDefault();
   } else if (event.key === "Enter") {
-    if (inputBuffer.length != 6) return;
-    const input = assembleJamo(inputBuffer.join(""));
+    const result = game.guess();
+    if (result === "AnswerLengthError") return;
+    if (result === "GuessLimitError") return;
+    if (result === "InvalidWordError") {
+      const message = document.getElementById("any-message")!;
+      message.textContent = "단어를 찾을 수 없습니다.";
+      return;
+    }
+
+    const inputBuffer = game.getAnswerBuffer();
+    const guessCount = game.getGuessCount();
 
     nextFocus = false;
     updateFocusTimeout();
-    if ((await getWordList()).includes(input)) {
-      const completeResult = completeRow(guessCount, inputBuffer, await getAnswer(Date.now()));
-      const keyboardState = new Map<string, CellState>();
-      for (let i = 0; i < completeResult.length; i++) {
-        if (keyboardState.get(inputBuffer[i]!) === "correct") {
-          continue;
-        }
-        if (keyboardState.get(inputBuffer[i]!) === "malposition" && completeResult[i] !== "correct") {
-          continue;
-        }
-        keyboardState.set(inputBuffer[i]!, completeResult[i]!);
+
+    updateRowCellState(guessCount - 1, result); // first guess -> row index 0
+    const keyboardState = new Map<string, CellState>();
+    for (let i = 0; i < result.length; i++) {
+      if ((keyboardState.get(inputBuffer[i]!) ?? 0) > result[i]!) {
+        continue;
       }
-      console.log(keyboardState);
-      updateKeyboard(keyboardState);
-      inputBuffer.length = 0;
-      const correct_answer = await getAnswer(Date.now());
-      if (input === correct_answer) { // win
-        gameState = "end";
+      keyboardState.set(inputBuffer[i]!, result[i]!);
+    }
+    updateKeyboard(keyboardState);
+    game.clearAnswer();
 
-        const any_message = document.getElementById("any-message")!;
-        const correct_answer_message =
-          document.getElementById("correct-answer")!;
-        const answer_meaning_message =
-          document.getElementById("answer-meaning")!;
+    if (result.every((v) => v === CellState.Correct)) {
+      // win
+      gameState = "end";
 
-        const wordDict = await getWordDict();
+      const any_message = document.getElementById("any-message")!;
+      const correct_answer_message = document.getElementById("correct-answer")!;
+      const answer_meaning_message = document.getElementById("answer-meaning")!;
 
-        const messages = endingMessage.slice(guessCount, 5).flat();
-        any_message.textContent =
-          messages[Math.floor(Math.random() * messages.length)] ?? "";
-        correct_answer_message.textContent = `${correct_answer}`;
-        answer_meaning_message.textContent = `${wordDict[correct_answer]}`;
-      } else if (guessCount >= 4) { // lose
-        gameState = "end";
+      const wordDict = await getWordDict();
 
-        const any_message = document.getElementById("any-message")!;
-        const correct_answer_message =
-          document.getElementById("correct-answer")!;
-        const answer_meaning_message =
-          document.getElementById("answer-meaning")!;
+      const messages = endingMessage.slice(guessCount - 1, 5).flat();
+      any_message.textContent =
+        messages[Math.floor(Math.random() * messages.length)] ?? "";
+      correct_answer_message.textContent = `${game.getCorrectAnswer()}`;
+      answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
+    } else if (guessCount >= game.getGuessLimit()) {
+      // lose
+      gameState = "end";
 
-        const wordDict = await getWordDict();
+      const any_message = document.getElementById("any-message")!;
+      const correct_answer_message = document.getElementById("correct-answer")!;
+      const answer_meaning_message = document.getElementById("answer-meaning")!;
 
-        const messages = endingMessage[5]!;
-        any_message.textContent =
-          messages[Math.floor(Math.random() * messages.length)] ?? "";
-        correct_answer_message.textContent = `${correct_answer}`;
-        answer_meaning_message.textContent = `${wordDict[correct_answer]}`;
-      } else { // next guess
-        guessCount++;
-        const any_message = document.getElementById("any-message")!;
-        any_message.textContent = "";
-      }
-    } else { // invalid guess
-      const message = document.getElementById("any-message")!;
-      message.textContent = "단어를 찾을 수 없습니다.";
+      const wordDict = await getWordDict();
+
+      const messages = endingMessage[5]!;
+      any_message.textContent =
+        messages[Math.floor(Math.random() * messages.length)] ?? "";
+      correct_answer_message.textContent = `${game.getCorrectAnswer()}`;
+      answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
+    } else {
+      // next guess
+      const any_message = document.getElementById("any-message")!;
+      any_message.textContent = "";
     }
   }
 });
@@ -137,7 +127,7 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
  * @param rowId 업데이트할 row 번호
  * @param inputBuffer
  */
-function updateRow(rowId: number, inputBuffer: string[]) {
+function updateRow(rowId: number, inputBuffer: readonly string[]) {
   const inputString = inputBuffer.join("");
   const row = document.getElementById(`row-${rowId}`)!;
   for (let i = 0; i < 6; i++) {
@@ -150,53 +140,18 @@ function updateRow(rowId: number, inputBuffer: string[]) {
 /**
  * inputBuffer와 정답 비교해 지정된 row에 반영
  *
- * @param rowId 수정할 row 번호
+ * @param rowId 수정할 row 번호(start 1)
  * @param inputBuffer
  * @param answer
  * @returns
  */
-function completeRow(rowId: number, inputBuffer: string[], answer: string): CellState[] {
-  const inputString = inputBuffer.join("");
-  const answerCompat = jamoToCompat(answer.normalize("NFD"));
-  let state: CellState[] = [];
-  const letterCounter = new Map<string, number>(); // malposition 표시 가능한 개수
-
-  for (let i = 0; i < inputString.length; i++) {
-    if (inputString[i] === answerCompat[i]) {
-      state.push("correct");
-    } else if (answerCompat.includes(inputString[i]!)) {
-      state.push("malposition");
-      letterCounter.set(
-        answerCompat[i]!,
-        (letterCounter.get(answerCompat[i]!) ?? 0) + 1,
-      );
-    } else {
-      state.push("absent");
-      letterCounter.set(
-        answerCompat[i]!,
-        (letterCounter.get(answerCompat[i]!) ?? 0) + 1,
-      );
-    }
-  }
-
+function updateRowCellState(rowId: number, state: CellState[]) {
   const row = document.getElementById(`row-${rowId}`)!;
   for (let i = 0; i < 6; i++) {
     const cell = row.children[i] as HTMLTableCellElement;
     cell.classList.remove("unchecked");
 
-    if (
-      state[i] === "malposition" &&
-      (letterCounter.get(inputString[i]!) ?? 0) <= 0
-    ) {
-      state[i] = "absent";
-    } else {
-      letterCounter.set(
-        inputString[i]!,
-        (letterCounter.get(inputString[i]!) ?? 0) - 1,
-      );
-    }
-
-    cell.classList.add(state[i]!);
+    cell.classList.add(CellState[state[i]!].toLowerCase());
   }
   return state;
 }
@@ -208,14 +163,17 @@ function updateKeyboard(stateAppend: Map<string, CellState>) {
     if (!cell) {
       continue;
     }
-    
+
     cell.classList.remove("unchecked");
     if (cell.classList.contains("correct")) {
       continue;
-    } else if (cell.classList.contains("malposition") && value !== "correct") {
+    } else if (
+      cell.classList.contains("malposition") &&
+      value !== CellState.Correct
+    ) {
       continue;
     }
-    cell.classList.add(value);
+    cell.classList.add(CellState[value].toLowerCase());
   }
 }
 
@@ -223,14 +181,18 @@ function updateFocusTimeout() {
   if (focusTimeoutId) clearTimeout(focusTimeoutId);
   focusTimeoutId = setTimeout(() => {
     nextFocus = true;
-  }, 1000);
+  }, 500);
 }
 
-async function getAnswer(date: number): Promise<string> {
-  const wordList = await getWordList();
-  const dayFromUtcEpoch = Math.floor(date / 1000 / 60 / 60 / 24);
+async function getDailyAnswer(date: number): Promise<string> {
+  const day = Math.floor(date / 1000 / 60 / 60 / 24);
+  return getAnswer(day);
+}
 
-  let x = dayFromUtcEpoch;
+async function getAnswer(seed: number): Promise<string> {
+  const wordList = await getWordList();
+
+  let x = seed;
   x = Math.imul(x ^ (x >>> 16), 0x21f0aaad);
   x = Math.imul(x ^ (x >>> 15), 0x735a2d97);
   x ^= x >>> 15;
