@@ -1,9 +1,9 @@
-@import 'water.css';
+@import "water.css";
 
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 .menu {
@@ -151,29 +151,52 @@
                 border: 1px solid #ccc;
                 container-type: inline-size;
 
-                .keyboard-key-text {
-                    overflow: visible;
-                    font-size: max(1.2em, 1em + 7cqw);
-                }
-
                 &.unchecked {
                     background-color: #fff;
                     color: #000;
+
+                    &:hover {
+                        background-color: #eee;
+                    }
                 }
-    
+
                 &.correct {
                     background-color: #108f10;
                     color: #fff;
+
+                    &:hover {
+                        background-color: #109f10;
+                    }
                 }
-    
+
                 &.malposition {
                     background-color: #ccaa00;
                     color: #fff;
+
+                    &:hover {
+                        background-color: #ddbb10;
+                    }
                 }
-    
+
                 &.absent {
                     background-color: #444;
                     color: #fff;
+
+                    &:hover {
+                        background-color: #555;
+                    }
+                }
+
+                &:active {
+                    transform: scale(0.9);
+                }
+
+                .keyboard-key-text {
+                    overflow: visible;
+                    font-size: max(1.2em, 1em + 7cqw);
+                    user-select: none;
+                    cursor: default;
+                    pointer-events: none;
                 }
             }
 

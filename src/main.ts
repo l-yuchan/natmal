@@ -49,77 +49,102 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
     event.preventDefault();
     return;
   } else if (/^[a-zA-Z]$/.test(event.key)) {
-    const jamo = jamoToCompat(alphabetToJamo(event.key));
-    game.appendAnswer(jamo, !nextFocus);
-
-    nextFocus = false;
-    updateFocusTimeout();
-    updateRow(game.getGuessCount(), game.getAnswerBuffer());
+    tryKey(event.key);
     event.preventDefault();
   } else if (event.key === "Enter") {
-    const result = game.guess();
-    if (result === "AnswerLengthError") return;
-    if (result === "GuessLimitError") return;
-    if (result === "InvalidWordError") {
-      const message = document.getElementById("any-message")!;
-      message.textContent = "단어를 찾을 수 없습니다.";
-      return;
-    }
-
-    const inputBuffer = game.getAnswerBuffer();
-    const guessCount = game.getGuessCount();
-
-    nextFocus = false;
-    updateFocusTimeout();
-
-    updateRowCellState(guessCount - 1, result); // first guess -> row index 0
-    const keyboardState = new Map<string, CellState>();
-    for (let i = 0; i < result.length; i++) {
-      if ((keyboardState.get(inputBuffer[i]!) ?? 0) > result[i]!) {
-        continue;
-      }
-      keyboardState.set(inputBuffer[i]!, result[i]!);
-    }
-    updateKeyboard(keyboardState);
-    game.clearAnswer();
-
-    if (result.every((v) => v === CellState.Correct)) {
-      // win
-      gameState = "end";
-
-      const any_message = document.getElementById("any-message")!;
-      const correct_answer_message = document.getElementById("correct-answer")!;
-      const answer_meaning_message = document.getElementById("answer-meaning")!;
-
-      const wordDict = await getWordDict();
-
-      const messages = endingMessage.slice(guessCount - 1, 5).flat();
-      any_message.textContent =
-        messages[Math.floor(Math.random() * messages.length)] ?? "";
-      correct_answer_message.textContent = `${game.getCorrectAnswer()}`;
-      answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
-    } else if (guessCount >= game.getGuessLimit()) {
-      // lose
-      gameState = "end";
-
-      const any_message = document.getElementById("any-message")!;
-      const correct_answer_message = document.getElementById("correct-answer")!;
-      const answer_meaning_message = document.getElementById("answer-meaning")!;
-
-      const wordDict = await getWordDict();
-
-      const messages = endingMessage[5]!;
-      any_message.textContent =
-        messages[Math.floor(Math.random() * messages.length)] ?? "";
-      correct_answer_message.textContent = `${game.getCorrectAnswer()}`;
-      answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
-    } else {
-      // next guess
-      const any_message = document.getElementById("any-message")!;
-      any_message.textContent = "";
-    }
+    await tryGuess();
   }
 });
+
+function tryKey(key: string) {
+  if (game === undefined) return;
+  const jamo = jamoToCompat(alphabetToJamo(key));
+  const result = game.appendAnswer(jamo, !nextFocus);
+
+  nextFocus = false;
+  updateFocusTimeout();
+  updateRow(game.getGuessCount(), game.getAnswerBuffer());
+}
+
+async function tryGuess() {
+  if (game === undefined) return;
+  
+  const result = game.guess();
+  if (result === "AnswerLengthError") return;
+  if (result === "GuessLimitError") return;
+  if (result === "InvalidWordError") {
+    const message = document.getElementById("any-message")!;
+    message.textContent = "단어를 찾을 수 없습니다.";
+    return;
+  }
+
+  const inputBuffer = game.getAnswerBuffer();
+  const guessCount = game.getGuessCount();
+
+  nextFocus = false;
+  updateFocusTimeout();
+
+  updateRowCellState(guessCount - 1, result); // first guess -> row index 0
+  const keyboardState = new Map<string, CellState>();
+  for (let i = 0; i < result.length; i++) {
+    if ((keyboardState.get(inputBuffer[i]!) ?? 0) > result[i]!) {
+      continue;
+    }
+    keyboardState.set(inputBuffer[i]!, result[i]!);
+  }
+  updateKeyboard(keyboardState);
+  game.clearAnswer();
+
+  if (result.every((v) => v === CellState.Correct)) {
+    // win
+    gameState = "end";
+
+    const any_message = document.getElementById("any-message")!;
+    const correct_answer_message = document.getElementById("correct-answer")!;
+    const answer_meaning_message = document.getElementById("answer-meaning")!;
+
+    const wordDict = await getWordDict();
+
+    const messages = endingMessage.slice(guessCount - 1, 5).flat();
+    any_message.textContent =
+      messages[Math.floor(Math.random() * messages.length)] ?? "";
+    correct_answer_message.textContent = `${game.getCorrectAnswer()}`;
+    answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
+  } else if (guessCount >= game.getGuessLimit()) {
+    // lose
+    gameState = "end";
+
+    const any_message = document.getElementById("any-message")!;
+    const correct_answer_message = document.getElementById("correct-answer")!;
+    const answer_meaning_message = document.getElementById("answer-meaning")!;
+
+    const wordDict = await getWordDict();
+
+    const messages = endingMessage[5]!;
+    any_message.textContent =
+      messages[Math.floor(Math.random() * messages.length)] ?? "";
+    correct_answer_message.textContent = `${game.getCorrectAnswer()}`;
+    answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
+  } else {
+    // next guess
+    const any_message = document.getElementById("any-message")!;
+    any_message.textContent = "";
+  }
+}
+
+const keys = document.getElementsByClassName("keyboard-key-input");
+for (let i = 0; i < keys.length; i++) {
+  keys[i]!.addEventListener("click", () => {
+    const key = keys[i]!;
+    const keyValue = key.getAttribute("key");
+    if (keyValue === null) return;
+    if (keyValue === "Enter") {
+      tryGuess();
+    } else {
+      tryKey(keyValue);
+    }
+  });
+}
 
 /**
  * 지정된 row에 문자열 업데이트

@@ -63,8 +63,8 @@ export class NatmalGame {
   public appendAnswer(jamo: string, compose: boolean = false): "InputLengthError" | "AnswerLengthError" | boolean {
     if (jamo.length !== 1) return "InputLengthError";
     if (compose) {
-      const composedJamo = composeJamo(this.answerBuffer[-1] ?? "" + jamo);
-      if (composedJamo.length == 1) {
+      const composedJamo = composeJamo((this.answerBuffer[this.answerBuffer.length - 1] ?? "") + jamo);
+      if (composedJamo.length == 1 && this.answerBuffer.length !== 0) {
         this.answerBuffer[this.answerBuffer.length - 1] = composedJamo;
       } else if (this.answerBuffer.length < this.answerLength) {
         this.answerBuffer.push(jamo);
