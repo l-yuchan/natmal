@@ -7,7 +7,6 @@ import { getWordList, getWordDict } from "./dict";
 import endingMessage from "./assets/endingMessage.json";
 import { NatmalGame, CellState } from "./natmal";
 
-let gameState: "playing" | "end" = "playing";
 let nextFocus = false; // if true, do not allow composing(ㄹ+ㅁ -> ㄻ)
 let focusTimeoutId: number | undefined;
 
@@ -22,7 +21,7 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
     event.ctrlKey ||
     event.metaKey ||
     event.altKey ||
-    gameState === "end"
+    game === undefined
   )
     return;
 
@@ -39,7 +38,7 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
 
   if (event.key === "Backspace") {
     game.backspaceAnswer();
-    updateRow(game.getGuessCount(), game.getAnswerBuffer());
+    updateRowText(game.getGuessCount(), game.getAnswerBuffer());
     nextFocus = false;
     updateFocusTimeout();
     event.preventDefault();
@@ -59,11 +58,11 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
 function tryKey(key: string) {
   if (game === undefined) return;
   const jamo = jamoToCompat(alphabetToJamo(key));
-  const result = game.appendAnswer(jamo, !nextFocus);
+  game.appendAnswer(jamo, !nextFocus);
 
   nextFocus = false;
   updateFocusTimeout();
-  updateRow(game.getGuessCount(), game.getAnswerBuffer());
+  updateRowText(game.getGuessCount(), game.getAnswerBuffer());
 }
 
 async function tryGuess() {
@@ -97,7 +96,6 @@ async function tryGuess() {
 
   if (result.every((v) => v === CellState.Correct)) {
     // win
-    gameState = "end";
 
     const any_message = document.getElementById("any-message")!;
     const correct_answer_message = document.getElementById("correct-answer")!;
@@ -110,9 +108,10 @@ async function tryGuess() {
       messages[Math.floor(Math.random() * messages.length)] ?? "";
     correct_answer_message.textContent = `${game.getCorrectAnswer()}`;
     answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
+
+    game = undefined;
   } else if (guessCount >= game.getGuessLimit()) {
     // lose
-    gameState = "end";
 
     const any_message = document.getElementById("any-message")!;
     const correct_answer_message = document.getElementById("correct-answer")!;
@@ -125,6 +124,8 @@ async function tryGuess() {
       messages[Math.floor(Math.random() * messages.length)] ?? "";
     correct_answer_message.textContent = `${game.getCorrectAnswer()}`;
     answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
+
+    game = undefined;
   } else {
     // next guess
     const any_message = document.getElementById("any-message")!;
@@ -152,13 +153,28 @@ for (let i = 0; i < keys.length; i++) {
  * @param rowId 업데이트할 row 번호
  * @param inputBuffer
  */
-function updateRow(rowId: number, inputBuffer: readonly string[]) {
-  const inputString = inputBuffer.join("");
+function updateRowText(rowId: number, inputBuffer: readonly string[]) {
   const row = document.getElementById(`row-${rowId}`)!;
   for (let i = 0; i < 6; i++) {
     const cell = row.children[i] as HTMLTableCellElement;
     cell.getElementsByClassName("letter-text")[0]!.textContent =
-      inputString[i] ?? "";
+      inputBuffer[i] ?? "";
+
+    if (i == inputBuffer.length - 1) {
+      // last cell with text
+      cell.animate(
+          [
+            { transform: "scale(1)" },
+            { transform: "scale(1.1)" },
+            { transform: "scale(1)" }
+          ],
+          {
+            duration: 200,
+            easing: "ease"
+          }
+        );
+      
+    }
   }
 }
 
