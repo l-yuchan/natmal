@@ -9,6 +9,7 @@ import { NatmalGame, CellState } from "./natmal";
 
 let nextFocus = false; // if true, do not allow composing(ㄹ+ㅁ -> ㄻ)
 let focusTimeoutId: number | undefined;
+const nextGameButton = document.getElementById("next-game") as HTMLButtonElement;
 
 let game: NatmalGame | undefined = new NatmalGame(
   await getDailyAnswer(Date.now()),
@@ -110,6 +111,7 @@ async function tryGuess() {
     answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
 
     game = undefined;
+    nextGameButton.hidden = false;
   } else if (guessCount >= game.getGuessLimit()) {
     // lose
 
@@ -126,12 +128,31 @@ async function tryGuess() {
     answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
 
     game = undefined;
+    nextGameButton.hidden = false;
   } else {
     // next guess
     const any_message = document.getElementById("any-message")!;
     any_message.textContent = "";
   }
 }
+
+nextGameButton.addEventListener("click", async () => {
+  nextGameButton.disabled = true;
+
+  try {
+    const seed = crypto.getRandomValues(new Uint32Array(1))[0]!;
+    const [answer, wordList] = await Promise.all([
+      getAnswer(seed),
+      getWordList(),
+    ]);
+
+    resetGameUi();
+    game = new NatmalGame(answer, wordList);
+    nextGameButton.hidden = true;
+  } finally {
+    nextGameButton.disabled = false;
+  }
+});
 
 const keys = document.getElementsByClassName("keyboard-key-input");
 for (let i = 0; i < keys.length; i++) {
@@ -223,6 +244,29 @@ function updateFocusTimeout() {
   focusTimeoutId = setTimeout(() => {
     nextFocus = true;
   }, 500);
+}
+
+function resetGameUi() {
+  document.querySelectorAll<HTMLElement>(".letter-text").forEach((element) => {
+    element.textContent = "";
+  });
+
+  document
+    .querySelectorAll<HTMLElement>(".letter, .keyboard-key-input")
+    .forEach((element) => {
+      element.classList.remove("correct", "malposition", "absent");
+      element.classList.add("unchecked");
+    });
+
+  for (const id of ["any-message", "correct-answer", "answer-meaning"]) {
+    document.getElementById(id)!.textContent = "";
+  }
+
+  if (focusTimeoutId !== undefined) {
+    clearTimeout(focusTimeoutId);
+    focusTimeoutId = undefined;
+  }
+  nextFocus = false;
 }
 
 async function getDailyAnswer(date: number): Promise<string> {
