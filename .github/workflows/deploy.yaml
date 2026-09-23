@@ -53,6 +53,14 @@ jobs:
           curl --fail-with-body \
             "https://api.cloudflare.com/client/v4/user/tokens/verify" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
+      - name: Verify Cloudflare token 2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          curl --fail-with-body \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/tokens/verify" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
       - name: Deploy
         uses: cloudflare/wrangler-action@v4
         with:
