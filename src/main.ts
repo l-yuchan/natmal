@@ -38,11 +38,8 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
   // 공포의 겹겹이 지옥! ㅗ+ㅐ=ㅙ 저한테 이러시는 건데요 아아악
 
   if (event.key === "Backspace") {
-    game.backspaceAnswer();
-    updateRowText(game.getGuessCount(), game.getAnswerBuffer());
-    nextFocus = false;
-    updateFocusTimeout();
     event.preventDefault();
+    tryBackspace();
     return;
   } else if (event.key === " ") {
     nextFocus = true;
@@ -53,8 +50,18 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
     event.preventDefault();
   } else if (event.key === "Enter") {
     await tryGuess();
+    return;
   }
 });
+
+function tryBackspace() {
+  if (game == undefined) return;
+  
+  game.backspaceAnswer();
+  updateRowText(game.getGuessCount(), game.getAnswerBuffer());
+  nextFocus = false;
+  updateFocusTimeout();
+}
 
 function tryKey(key: string) {
   if (game === undefined) return;
@@ -162,6 +169,8 @@ for (let i = 0; i < keys.length; i++) {
     if (keyValue === null) return;
     if (keyValue === "Enter") {
       tryGuess();
+    } else if (keyValue === "Backspace") {
+      tryBackspace();
     } else {
       tryKey(keyValue);
     }

@@ -210,7 +210,14 @@
             }
 
             &.key-enter {
-                flex: 2;
+                flex: 1.5;
+                width: 4em;
+                height: 4em;
+                margin: 0.25em;
+            }
+
+            &.key-backspace {
+                flex: 1.5;
                 width: 4em;
                 height: 4em;
                 margin: 0.25em;
