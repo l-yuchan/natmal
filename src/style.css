@@ -244,6 +244,62 @@
     }
 }
 
+@media (max-width: 767px) {
+    .keyboard {
+        --keyboard-gap: clamp(0.125rem, 0.6vw, 0.25rem);
+        --keyboard-key-height: clamp(2.25rem, 10vw, 2.75rem);
+
+        /* Reclaim most of the body gutter without touching the viewport edges. */
+        width: calc(100vw - 0.5rem);
+        gap: var(--keyboard-gap);
+
+        .keyboard-row {
+            gap: var(--keyboard-gap);
+            margin-bottom: 0;
+
+            .keyboard-key {
+                flex-basis: 0;
+                min-width: 0;
+                width: auto;
+                height: var(--keyboard-key-height);
+                margin: 0;
+
+                &.key-enter,
+                &.key-backspace {
+                    width: auto;
+                    height: var(--keyboard-key-height);
+                    margin: 0;
+                }
+
+                .keyboard-key-input {
+                    min-width: 0;
+
+                    .keyboard-key-text {
+                        font-size: clamp(1.1rem, 5vw, 1.4rem);
+                    }
+                }
+
+                .keyboard-key-child .keyboard-key-text {
+                    font-size: clamp(0.75rem, 3.4vw, 1rem);
+                }
+            }
+
+            .keyboard-pad,
+            .keyboard-pad-full {
+                min-width: 0;
+                width: auto;
+                height: var(--keyboard-key-height);
+                margin: 0;
+            }
+        }
+    }
+
+    /* Give the optional second key row enough height when it is enabled. */
+    .gamearea:has(#advanced-keyboard:checked) .keyboard {
+        --keyboard-key-height: clamp(3.5rem, 16vw, 4rem);
+    }
+}
+
 @keyframes pop {
     0% {
         transform: scale(1);
