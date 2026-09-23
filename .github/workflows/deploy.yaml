@@ -33,6 +33,19 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+      - name: Check Cloudflare token
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          echo "Token length: ${#TOKEN}"
+          if [[ "$TOKEN" == "Bearer "* ]]; then
+            echo "ERROR: Token incorrectly starts with 'Bearer '"
+            exit 1
+          fi
+          if [[ "$TOKEN" == \"* || "$TOKEN" == *\" ]]; then
+            echo "ERROR: Token appears to contain quotes"
+            exit 1
+          fi
       - name: Verify Cloudflare token
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
