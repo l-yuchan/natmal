@@ -9,7 +9,6 @@ import { NatmalGame, CellState } from "./natmal";
 
 let nextFocus = false; // if true, do not allow composing(ㄹ+ㅁ -> ㄻ)
 let focusTimeoutId: number | undefined;
-const nextGameButton = document.getElementById("next-game") as HTMLButtonElement;
 
 let game: NatmalGame | undefined = new NatmalGame(
   await getDailyAnswer(Date.now()),
@@ -143,6 +142,7 @@ async function tryGuess() {
   }
 }
 
+const nextGameButton = document.getElementById("next-game") as HTMLButtonElement;
 nextGameButton.addEventListener("click", async () => {
   nextGameButton.disabled = true;
 
@@ -161,9 +161,24 @@ nextGameButton.addEventListener("click", async () => {
   }
 });
 
+const advancedKeyboard = document.getElementById("advanced-keyboard") as HTMLInputElement;
+const advancedKeyContainer = document.getElementsByClassName("keyboard-key-child") as HTMLCollectionOf<HTMLElement>;
+const minimumAdvancedKeyboardWidth = 768;
+if (window.innerWidth < minimumAdvancedKeyboardWidth) {
+  advancedKeyboard.checked = false;
+  for (let i = 0; i < advancedKeyContainer.length; i++) {
+    advancedKeyContainer[i]!.style.display = "none";
+  }
+}
+advancedKeyboard.addEventListener("change", () => {
+  for (let i = 0; i < advancedKeyContainer.length; i++) {
+    advancedKeyContainer[i]!.style.display = !advancedKeyboard.checked ? "none" : "flex";
+  }
+});
+
 const keys = document.getElementsByClassName("keyboard-key-input");
 for (let i = 0; i < keys.length; i++) {
-  keys[i]!.addEventListener("click", () => {
+  keys[i]!.addEventListener("mousedown", () => {
     const key = keys[i]!;
     const keyValue = key.getAttribute("key");
     if (keyValue === null) return;
