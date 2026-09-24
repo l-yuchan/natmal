@@ -5,17 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:tunnel": "concurrently --kill-others \"vite\" \"wrangler tunnel run vite\"",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest"
   },
   "devDependencies": {
+    "concurrently": "^10.0.5",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "wrangler": "^4.138.0"
   },
   "dependencies": {
-    "hiq": "^4.2.11",
-    "vite-plugin-cloudflare-tunnel": "^1.0.12"
+    "hiq": "^4.2.11"
   }
 }
