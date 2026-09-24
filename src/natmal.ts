@@ -21,7 +21,7 @@ export class NatmalGame {
   private correctAnswer: string;
   private answerBuffer: string[];
   private answerLength: number;
-  private wordList: readonly string[];
+  private validWordList: readonly string[];
 
   constructor(
     answer: string,
@@ -32,7 +32,7 @@ export class NatmalGame {
     this.correctAnswer = answer;
     this.guessCount = 0;
     this.answerBuffer = [];
-    this.wordList = wordList;
+    this.validWordList = wordList;
     this.guessLimit = guessLimit;
     this.answerLength = answerLength;
   }
@@ -99,7 +99,7 @@ export class NatmalGame {
       return "GuessLimitError";
     }
     const guessedAnswer = assembleJamo(this.answerBuffer.join(""));
-    if (!this.wordList.includes(guessedAnswer)) {
+    if (!this.validWordList.includes(guessedAnswer)) {
       return "InvalidWordError";
     }
     const decomposedCorrect = jamoToCompat(this.correctAnswer.normalize("NFD"));

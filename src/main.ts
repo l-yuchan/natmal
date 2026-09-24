@@ -3,7 +3,7 @@ import {
   jamoToCompat,
   alphabetToJamo,
 } from "./jamoutil";
-import { getWordList, getWordDict } from "./dict";
+import { getValidWordList, getAnswerWordList, getWordDict } from "./dict";
 import endingMessage from "./assets/endingMessage.json";
 import { NatmalGame, CellState } from "./natmal";
 
@@ -12,7 +12,7 @@ let focusTimeoutId: number | undefined;
 
 let game: NatmalGame | undefined = new NatmalGame(
   await getDailyAnswer(Date.now() + 9 * 60 * 60 * 1000),
-  await getWordList(),
+  await getValidWordList(),
 );
 
 window.addEventListener("keydown", async (event: KeyboardEvent) => {
@@ -149,7 +149,7 @@ nextGameButton.addEventListener("click", async () => {
     const seed = crypto.getRandomValues(new Uint32Array(1))[0]!;
     const [answer, wordList] = await Promise.all([
       getAnswer(seed),
-      getWordList(),
+      getValidWordList(),
     ]);
 
     resetGameUi();
@@ -199,9 +199,9 @@ function updateRowText(rowId: number, inputBuffer: readonly string[]) {
       // last cell with text
       cell.animate(
           [
-            { transform: "scale(1)" },
-            { transform: "scale(1.1)" },
-            { transform: "scale(1)" }
+            { scale: 1 },
+            { scale: 1.1 },
+            { scale: 1 }
           ],
           {
             duration: 200,
@@ -289,7 +289,7 @@ async function getDailyAnswer(date: number): Promise<string> {
 }
 
 async function getAnswer(seed: number): Promise<string> {
-  const wordList = await getWordList();
+  const wordList = await getAnswerWordList();
 
   let x = seed;
   x = Math.imul(x ^ (x >>> 16), 0x21f0aaad);

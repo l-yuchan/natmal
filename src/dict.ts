@@ -1,5 +1,4 @@
-export type DefinitionEntry = readonly [definition: string, category: string];
-export type Definitions = Record<string, DefinitionEntry>;
+export type Definitions = Record<string, string>;
 
 async function fetchJson(url: string): Promise<unknown> {
   const res = await fetch(url);
@@ -7,24 +6,44 @@ async function fetchJson(url: string): Promise<unknown> {
   return res.json();
 }
 
-let wordList: Promise<readonly string[]> | undefined;
+let validWordList: Promise<readonly string[]> | undefined;
+let answerWordList: Promise<readonly string[]> | undefined;
 let wordDict: Promise<Definitions> | undefined;
 
-export async function getWordList(): Promise<readonly string[]> {
-  return (wordList ??= loadWordList());
+export async function getValidWordList(): Promise<readonly string[]> {
+  return (validWordList ??= loadValidWordList());
 }
 
-async function loadWordList(): Promise<readonly string[]> {
+export async function getAnswerWordList(): Promise<readonly string[]> {
+  return (answerWordList ??= loadAnswerWordList());
+}
+
+async function loadValidWordList(): Promise<readonly string[]> {
   let data;
   try {
-      data = await fetchJson("words.json");
+      data = await fetchJson("valid_words.json");
     } catch (e) {
-      wordList = undefined;
+      validWordList = undefined;
       throw e;
     }
   
     if (!Array.isArray(data) || !data.every((x): x is string => typeof x === "string")) {
       throw new TypeError(`Unexpected JSON shape from words.json`);
+    }
+    return data;
+}
+
+async function loadAnswerWordList(): Promise<readonly string[]> {
+  let data;
+  try {
+      data = await fetchJson("answer_words.json");
+    } catch (e) {
+      answerWordList = undefined;
+      throw e;
+    }
+  
+    if (!Array.isArray(data) || !data.every((x): x is string => typeof x === "string")) {
+      throw new TypeError(`Unexpected JSON shape from answer_words.json`);
     }
     return data;
 }
@@ -42,7 +61,7 @@ async function loadWordDict(): Promise<Definitions> {
       throw e;
     }
   
-    if (typeof data !== "object" || data === null || !Object.values(data).every((x): x is DefinitionEntry => Array.isArray(x) && x.length === 2)) {
+    if (typeof data !== "object" || data === null || !Object.values(data).every((x) => typeof x === "string")) {
       throw new TypeError(`Unexpected JSON shape from definitions.json`);
     }
     return data as unknown as Definitions;
