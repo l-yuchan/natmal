@@ -11,7 +11,7 @@ let nextFocus = false; // if true, do not allow composing(ㄹ+ㅁ -> ㄻ)
 let focusTimeoutId: number | undefined;
 
 let game: NatmalGame | undefined = new NatmalGame(
-  await getDailyAnswer(Date.now()),
+  await getDailyAnswer(Date.now() + 9 * 60 * 60 * 1000),
   await getWordList(),
 );
 
@@ -27,7 +27,6 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
 
   const target = event.target as HTMLElement | null;
   if (
-    target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
     target?.isContentEditable
   ) {
@@ -161,20 +160,11 @@ nextGameButton.addEventListener("click", async () => {
   }
 });
 
-const advancedKeyboard = document.getElementById("advanced-keyboard") as HTMLInputElement;
-const advancedKeyContainer = document.getElementsByClassName("keyboard-key-child") as HTMLCollectionOf<HTMLElement>;
-const minimumAdvancedKeyboardWidth = 768;
-if (window.innerWidth < minimumAdvancedKeyboardWidth) {
-  advancedKeyboard.checked = false;
-  for (let i = 0; i < advancedKeyContainer.length; i++) {
-    advancedKeyContainer[i]!.style.display = "none";
-  }
+const useConciseKeyboard = document.getElementById("concise-keyboard") as HTMLInputElement;
+const mobileThreshold = 768;
+if (window.innerWidth <= mobileThreshold) {
+  useConciseKeyboard.checked = true;
 }
-advancedKeyboard.addEventListener("change", () => {
-  for (let i = 0; i < advancedKeyContainer.length; i++) {
-    advancedKeyContainer[i]!.style.display = !advancedKeyboard.checked ? "none" : "flex";
-  }
-});
 
 const keys = document.getElementsByClassName("keyboard-key-input");
 for (let i = 0; i < keys.length; i++) {

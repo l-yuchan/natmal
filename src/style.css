@@ -41,7 +41,7 @@
     }
 }
 
-.gamearea {
+#gamearea {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -244,7 +244,34 @@
     }
 }
 
-@media (max-width: 767px) {
+#gamearea:has(#concise-keyboard:checked) .keyboard-key-child {
+    display: none;
+}
+
+#gamearea:has(#hide-answers:checked) {
+    .letter-text {
+        display: none;
+    }
+
+    #correct-answer {
+        display: none;
+    }
+
+    #answer-meaning {
+        display: none;
+    }
+
+    .keyboard-key-input {
+        background-color: #fff !important;
+        color: #000 !important;
+
+        &:hover {
+            background-color: #eee !important;
+        }
+    }
+}
+
+@media (max-width: 768px) {
     .keyboard {
         --keyboard-gap: clamp(0.125rem, 0.6vw, 0.25rem);
         --keyboard-key-height: clamp(2.25rem, 10vw, 2.75rem);
@@ -295,7 +322,7 @@
     }
 
     /* Give the optional second key row enough height when it is enabled. */
-    .gamearea:has(#advanced-keyboard:checked) .keyboard {
+    #gamearea:has(#consise-keyboard:not(:checked)) .keyboard {
         --keyboard-key-height: clamp(3.5rem, 16vw, 4rem);
     }
 }
