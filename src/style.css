@@ -218,6 +218,18 @@
                 width: 4em;
                 height: 4em;
                 margin: 0.25em;
+            
+                .keyboard-key-text {
+                    width: min(30cqw, 2.5rem);
+                    aspect-ratio: 1;
+                }
+            
+                img {
+                    display: block;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                }
             }
 
             &.key-backspace {
@@ -322,7 +334,7 @@
     }
 
     /* Give the optional second key row enough height when it is enabled. */
-    #gamearea:has(#consise-keyboard:not(:checked)) .keyboard {
+    #gamearea:has(#concise-keyboard:not(:checked)) .keyboard {
         --keyboard-key-height: clamp(3.5rem, 16vw, 4rem);
     }
 }
