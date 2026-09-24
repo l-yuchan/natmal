@@ -42,12 +42,8 @@
 }
 
 #gamearea {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    /*height: 100vh;*/
-    /*background-color: #f0f0f0;*/
+    display: grid;
+    justify-items: center;
 }
 
 .gamerow {
@@ -120,144 +116,113 @@
 }
 
 .keyboard {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    row-gap: 0.5em;
+    column-gap: 0.5em;
     width: 100%;
 
-    .keyboard-row {
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-        margin-bottom: 0.5em;
-        width: 100%;
+    .keyboard-key {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr);
+        min-width: 0;
+        height: 4em;
+        border: 1px solid #888;
 
-        .keyboard-key {
-            flex: 1;
-            width: 4em;
-            height: 4em;
-            margin: 0.25em;
-            border: 1px solid #888;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        &:has(.keyboard-key-child) {
+            grid-template-rows: repeat(2, minmax(0, 1fr));
+        }
 
-            .keyboard-key-input {
-                flex: 1;
-                height: 100%;
-                width: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+        .keyboard-key-input {
+            min-width: 0;
+            display: grid;
+            place-items: center;
+            overflow: visible;
+            border: 1px solid #ccc;
+            container-type: inline-size;
+
+            &.unchecked {
+                background-color: #fff;
+                color: #000;
+
+                &:hover {
+                    background-color: #eee;
+                }
+            }
+
+            &.correct {
+                background-color: #108f10;
+                color: #fff;
+
+                &:hover {
+                    background-color: #109f10;
+                }
+            }
+
+            &.malposition {
+                background-color: #ccaa00;
+                color: #fff;
+
+                &:hover {
+                    background-color: #ddbb10;
+                }
+            }
+
+            &.absent {
+                background-color: #444;
+                color: #fff;
+
+                &:hover {
+                    background-color: #555;
+                }
+            }
+
+            &:active {
+                transform: scale(0.9);
+            }
+
+            .keyboard-key-text {
                 overflow: visible;
-                border: 1px solid #ccc;
-                container-type: inline-size;
+                font-size: max(1.2em, 1em + 7cqw);
+                user-select: none;
+                cursor: default;
+                pointer-events: none;
+            }
+        }
 
-                &.unchecked {
-                    background-color: #fff;
-                    color: #000;
+        .keyboard-key-child {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(0, 1fr);
+            min-height: 0;
+        }
 
-                    &:hover {
-                        background-color: #eee;
-                    }
-                }
+        &.key-enter {
+            grid-column: span 2;
 
-                &.correct {
-                    background-color: #108f10;
-                    color: #fff;
-
-                    &:hover {
-                        background-color: #109f10;
-                    }
-                }
-
-                &.malposition {
-                    background-color: #ccaa00;
-                    color: #fff;
-
-                    &:hover {
-                        background-color: #ddbb10;
-                    }
-                }
-
-                &.absent {
-                    background-color: #444;
-                    color: #fff;
-
-                    &:hover {
-                        background-color: #555;
-                    }
-                }
-
-                &:active {
-                    transform: scale(0.9);
-                }
-
-                .keyboard-key-text {
-                    overflow: visible;
-                    font-size: max(1.2em, 1em + 7cqw);
-                    user-select: none;
-                    cursor: default;
-                    pointer-events: none;
-                }
+            .keyboard-key-text {
+                width: min(20cqw, 2.5rem);
+                aspect-ratio: 1;
             }
 
-            .keyboard-key-child {
-                flex: 1;
+            img {
+                display: block;
                 width: 100%;
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                justify-content: center;
+                height: 100%;
+                object-fit: contain;
             }
-
-            &.key-enter {
-                flex: 1.5;
-                width: 4em;
-                height: 4em;
-                margin: 0.25em;
-            
-                .keyboard-key-text {
-                    width: min(30cqw, 2.5rem);
-                    aspect-ratio: 1;
-                }
-            
-                img {
-                    display: block;
-                    width: 100%;
-                    height: 100%;
-                    object-fit: contain;
-                }
-            }
-
-            &.key-backspace {
-                flex: 1.5;
-                width: 4em;
-                height: 4em;
-                margin: 0.25em;
-            }
-        }
-
-        .keyboard-pad-full {
-            flex: 1;
-            width: 4em;
-            height: 4em;
-            margin: 0.25em;
-        }
-
-        .keyboard-pad {
-            flex: 0.5;
-            width: 4em;
-            height: 4em;
-            margin: 0.25em;
         }
     }
 }
 
-#gamearea:has(#concise-keyboard:checked) .keyboard-key-child {
-    display: none;
+#gamearea:has(#concise-keyboard:checked) {
+    .keyboard-key-child {
+        display: none;
+    }
+
+    .keyboard-key:has(.keyboard-key-child) {
+        grid-template-rows: minmax(0, 1fr);
+    }
 }
 
 #gamearea:has(#hide-answers:checked) {
@@ -292,43 +257,19 @@
         width: calc(100vw - 0.5rem);
         gap: var(--keyboard-gap);
 
-        .keyboard-row {
-            gap: var(--keyboard-gap);
-            margin-bottom: 0;
+        .keyboard-key {
+            height: var(--keyboard-key-height);
 
-            .keyboard-key {
-                flex-basis: 0;
+            .keyboard-key-input {
                 min-width: 0;
-                width: auto;
-                height: var(--keyboard-key-height);
-                margin: 0;
 
-                &.key-enter,
-                &.key-backspace {
-                    width: auto;
-                    height: var(--keyboard-key-height);
-                    margin: 0;
-                }
-
-                .keyboard-key-input {
-                    min-width: 0;
-
-                    .keyboard-key-text {
-                        font-size: clamp(1.1rem, 5vw, 1.4rem);
-                    }
-                }
-
-                .keyboard-key-child .keyboard-key-text {
-                    font-size: clamp(0.75rem, 3.4vw, 1rem);
+                .keyboard-key-text {
+                    font-size: clamp(1.1rem, 5vw, 1.4rem);
                 }
             }
 
-            .keyboard-pad,
-            .keyboard-pad-full {
-                min-width: 0;
-                width: auto;
-                height: var(--keyboard-key-height);
-                margin: 0;
+            .keyboard-key-child .keyboard-key-text {
+                font-size: clamp(0.75rem, 3.4vw, 1rem);
             }
         }
     }
