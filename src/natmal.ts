@@ -10,6 +10,13 @@ export enum CellState {
   Correct,
 }
 
+export type GameResult = {
+  guessCount: number;
+  correctAnswer: string;
+  guessHistory: CellState[][];
+  win: boolean;
+};
+
 /**
  * 논리적 게임 클래스
  *
@@ -22,6 +29,7 @@ export class NatmalGame {
   private answerBuffer: string[];
   private answerLength: number;
   private validWordList: readonly string[];
+  private guessHistory: CellState[][];
 
   constructor(
     answer: string,
@@ -35,6 +43,7 @@ export class NatmalGame {
     this.validWordList = wordList;
     this.guessLimit = guessLimit;
     this.answerLength = answerLength;
+    this.guessHistory = [];
   }
 
   public getAnswerBuffer(): readonly string[] {
@@ -43,6 +52,10 @@ export class NatmalGame {
 
   public getGuessCount(): number {
     return this.guessCount;
+  }
+
+  public getGuessHistory(): readonly CellState[][] {
+    return this.guessHistory;
   }
 
   public getGuessLimit(): number {
@@ -55,15 +68,20 @@ export class NatmalGame {
 
   /**
    * compose: answerBuffer 마지막 자모와 합성 허용. `answerBuffer` 꽉 찬 상태에서도 오류나지 않음
-   * 
+   *
    * @param jamo Compatibility Jamo
-   * @param compose 
+   * @param compose
    * @returns 에러 혹은 append 성공 여부
    */
-  public appendAnswer(jamo: string, compose: boolean = false): "InputLengthError" | "AnswerLengthError" | boolean {
+  public appendAnswer(
+    jamo: string,
+    compose: boolean = false,
+  ): "InputLengthError" | "AnswerLengthError" | boolean {
     if (jamo.length !== 1) return "InputLengthError";
     if (compose) {
-      const composedJamo = composeJamo((this.answerBuffer[this.answerBuffer.length - 1] ?? "") + jamo);
+      const composedJamo = composeJamo(
+        (this.answerBuffer[this.answerBuffer.length - 1] ?? "") + jamo,
+      );
       if (composedJamo.length == 1 && this.answerBuffer.length !== 0) {
         this.answerBuffer[this.answerBuffer.length - 1] = composedJamo;
       } else if (this.answerBuffer.length < this.answerLength) {
@@ -89,7 +107,7 @@ export class NatmalGame {
   public clearAnswer(): void {
     this.answerBuffer.length = 0;
   }
-  
+
   public guess():
     "AnswerLengthError" | "GuessLimitError" | "InvalidWordError" | CellState[] {
     if (this.answerBuffer.length !== this.answerLength) {
@@ -132,6 +150,7 @@ export class NatmalGame {
       }
     }
 
+    this.guessHistory.push(result);
     return result;
   }
 }

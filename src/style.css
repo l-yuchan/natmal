@@ -20,7 +20,7 @@
             font-size: 3em;
             text-align: center;
         }
-        
+
         #nat,
         #mal {
             position: absolute;
@@ -29,11 +29,11 @@
             white-space: nowrap;
             transform: translateX(-50%);
         }
-        
+
         #nat {
             left: calc(50% - 2.25em);
         }
-        
+
         #mal {
             left: calc(50% + 2.15em);
         }
@@ -99,7 +99,7 @@
         }
 
         .letter-text {
-            font-size: clamp(1.75rem, 10vw, 3rem);
+            font-size: clamp(1.75rem, 10vw, 2.75rem);
             color: black;
             transition: transform 0.5s ease;
             transform: rotateX(0deg);
@@ -107,7 +107,7 @@
     }
 }
 
-.message-area {
+.util-area {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -202,7 +202,7 @@
             grid-column: span 2;
 
             .keyboard-key-text {
-                width: min(20cqw, 2.5rem);
+                width: min(30cqw, 2.5rem);
                 aspect-ratio: 1;
             }
 
@@ -289,5 +289,38 @@
     }
     100% {
         transform: scale(1);
+    }
+}
+
+.toast {
+    position: fixed;
+    top: 0px;
+    text-align: center;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 1000;
+    animation: slide_inout 1.5s ease-in-out;
+    animation-composition: accumulate;
+
+    &.inform {
+        background-color: #108f10;
+        color: white;
+    }
+}
+
+@keyframes slide_inout {
+    0% {
+        transform: translateY(-100%);
+    }
+    25% {
+        transform: translateY(3em);
+    }
+    75% {
+        transform: translateY(3em);
+    }
+    100% {
+        transform: translateY(-100%);
     }
 }

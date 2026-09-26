@@ -3,7 +3,7 @@ name: Deploy to Cloudflare Pages
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ['main']
+    branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -14,7 +14,7 @@ permissions:
 
 # Allow one concurrent deployment
 concurrency:
-  group: 'cloudflare-pages'
+  group: "cloudflare-pages"
   cancel-in-progress: true
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: lts/*
-          cache: 'npm'
+          cache: "npm"
       - name: Install dependencies
         run: npm ci
       - name: Build

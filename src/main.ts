@@ -1,11 +1,9 @@
 import "./style.css";
-import {
-  jamoToCompat,
-  alphabetToJamo,
-} from "./jamoutil";
+import { jamoToCompat, alphabetToJamo } from "./jamoutil";
 import { getValidWordList, getAnswerWordList, getWordDict } from "./dict";
-import endingMessage from "./assets/endingMessage.json";
-import { NatmalGame, CellState } from "./natmal";
+import messageAsset from "./assets/messageAsset.json";
+import { NatmalGame, CellState, type GameResult } from "./natmal";
+import { showToast } from "./toast";
 
 let nextFocus = false; // if true, do not allow composing(ㄹ+ㅁ -> ㄻ)
 let focusTimeoutId: number | undefined;
@@ -14,6 +12,7 @@ let game: NatmalGame | undefined = new NatmalGame(
   await getDailyAnswer(Date.now() + 9 * 60 * 60 * 1000),
   await getValidWordList(),
 );
+let lastGameResult: GameResult | undefined;
 
 window.addEventListener("keydown", async (event: KeyboardEvent) => {
   if (
@@ -26,10 +25,7 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
     return;
 
   const target = event.target as HTMLElement | null;
-  if (
-    target instanceof HTMLTextAreaElement ||
-    target?.isContentEditable
-  ) {
+  if (target instanceof HTMLTextAreaElement || target?.isContentEditable) {
     return;
   }
 
@@ -54,7 +50,7 @@ window.addEventListener("keydown", async (event: KeyboardEvent) => {
 
 function tryBackspace() {
   if (game == undefined) return;
-  
+
   game.backspaceAnswer();
   updateRowText(game.getGuessCount(), game.getAnswerBuffer());
   nextFocus = false;
@@ -71,9 +67,16 @@ function tryKey(key: string) {
   updateRowText(game.getGuessCount(), game.getAnswerBuffer());
 }
 
+const nextGameButton = document.getElementById(
+  "next-game",
+) as HTMLButtonElement;
+const shareResultButton = document.getElementById(
+  "share-result",
+) as HTMLButtonElement;
+
 async function tryGuess() {
   if (game === undefined) return;
-  
+
   const result = game.guess();
   if (result === "AnswerLengthError") return;
   if (result === "GuessLimitError") return;
@@ -109,14 +112,25 @@ async function tryGuess() {
 
     const wordDict = await getWordDict();
 
-    const messages = endingMessage.slice(guessCount - 1, 5).flat();
+    const messages = messageAsset.endingMessages
+      .slice(guessCount - 1, 5)
+      .flat();
     any_message.textContent =
       messages[Math.floor(Math.random() * messages.length)] ?? "";
     correct_answer_message.textContent = `${game.getCorrectAnswer()}`;
     answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
 
+    lastGameResult = {
+      guessCount: game.getGuessCount(),
+      correctAnswer: game.getCorrectAnswer(),
+      guessHistory: game.getGuessHistory().map((x) => {
+        return x.slice();
+      }),
+      win: true,
+    };
     game = undefined;
     nextGameButton.hidden = false;
+    shareResultButton.hidden = false;
   } else if (guessCount >= game.getGuessLimit()) {
     // lose
 
@@ -126,14 +140,23 @@ async function tryGuess() {
 
     const wordDict = await getWordDict();
 
-    const messages = endingMessage[5]!;
+    const messages = messageAsset.endingMessages[game.getGuessLimit()]!;
     any_message.textContent =
       messages[Math.floor(Math.random() * messages.length)] ?? "";
     correct_answer_message.textContent = `${game.getCorrectAnswer()}`;
     answer_meaning_message.textContent = `${wordDict[game.getCorrectAnswer()]}`;
 
+    lastGameResult = {
+      guessCount: game.getGuessCount(),
+      correctAnswer: game.getCorrectAnswer(),
+      guessHistory: game.getGuessHistory().map((x) => {
+        return x.slice();
+      }),
+      win: false,
+    };
     game = undefined;
     nextGameButton.hidden = false;
+    shareResultButton.hidden = false;
   } else {
     // next guess
     const any_message = document.getElementById("any-message")!;
@@ -141,7 +164,6 @@ async function tryGuess() {
   }
 }
 
-const nextGameButton = document.getElementById("next-game") as HTMLButtonElement;
 nextGameButton.addEventListener("click", async () => {
   nextGameButton.disabled = true;
 
@@ -154,13 +176,93 @@ nextGameButton.addEventListener("click", async () => {
 
     resetGameUi();
     game = new NatmalGame(answer, wordList);
-    nextGameButton.hidden = true;
   } finally {
     nextGameButton.disabled = false;
   }
 });
 
-const useConciseKeyboard = document.getElementById("concise-keyboard") as HTMLInputElement;
+shareResultButton.addEventListener("click", async () => {
+  if (!lastGameResult) return;
+
+  const canvas = new OffscreenCanvas(1024, 1320);
+  const ctx = canvas.getContext("2d")!;
+  // background
+  ctx.fillStyle = "rgb(255,255,255)";
+  ctx.fillRect(0, 0, 1024, 1320);
+  // logo
+  ctx.fillStyle = "rgb(0,0,0)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.font = "bold 32px HanlimMyungjo";
+  ctx.fillText("ㄴㅏㅌ", (256 - 36) * 2, 60);
+  ctx.fillText("ㅁㅏㄹ", (256 + 34.4) * 2, 60);
+  ctx.font = "bold 96px HanlimMyungjo";
+  ctx.textBaseline = "top";
+  ctx.fillText("낱;말", 256 * 2, 60);
+  // date
+  const dateBaseY = 200;
+  ctx.font = "bold 64px HanlimMyungjo";
+  ctx.fillText(new Date().toLocaleDateString('ko-KR'), 512, dateBaseY);
+  // result
+  const resultGridBaseY = dateBaseY + 80;
+  for (let i = 0; i < 5; i++) {
+    const row = lastGameResult.guessHistory[i];
+    if (!row) {
+      for (let j = 0; j < 6; j++) {
+        ctx.fillStyle = "rgb(244,244,244)";
+        ctx.fillRect(68 + j * (128 + 24), resultGridBaseY + i * (128 + 48), 128, 128);
+        ctx.fillStyle = "rgb(204,204,204)";
+        ctx.strokeRect(68 + j * (128 + 24), resultGridBaseY + i * (128 + 48), 128, 128);
+      }
+      continue;
+    }
+    for (let j = 0; j < 6; j++) {
+      const color: string =
+        row[j] === CellState.Correct
+          ? "rgb(16,143,16)"
+          : row[j] === CellState.Malposition
+            ? "rgb(204,170,00)"
+            : row[j] === CellState.Absent
+              ? "rgb(68,68,68)"
+              : "rgb(255,255,255)";
+      ctx.fillStyle = color;
+      ctx.fillRect(68 + j * (128 + 24), resultGridBaseY + i * (128 + 48), 128, 128);
+    }
+  }
+  // comment
+  const commentBaseY = resultGridBaseY + 5 * (128 + 48) + 20;
+  ctx.font = "bold 64px HanlimMyungjo";
+  ctx.fillStyle = "rgb(00,00,00)";
+  const commentList = lastGameResult.win
+    ? messageAsset.shareMessages.win
+    : messageAsset.shareMessages.lose;
+  const comment = commentList[Math.floor(Math.random() * commentList.length)]!;
+  ctx.fillText(comment, 512, commentBaseY);
+  // site ad
+  ctx.font = "32px Roboto";
+  ctx.fillText("natmal.chanoil.com", 512, canvas.height - 40);
+
+  const blob = await canvas.convertToBlob();
+  const imageShareable = {
+    title: "오늘의 낱말 결과",
+    url: window.location.href,
+    files: [new File([blob], "result.png", { type: "image/png" })],
+  };
+
+  if (navigator.share && navigator.canShare(imageShareable)) {
+    await navigator.share(imageShareable);
+  } else {
+    const clipItem = new ClipboardItem({
+      "image/png": blob,
+    });
+    navigator.clipboard.write([clipItem]);
+    showToast("결과 복사됨");
+  }
+});
+
+const useConciseKeyboard = document.getElementById(
+  "concise-keyboard",
+) as HTMLInputElement;
 const mobileThreshold = 768;
 if (window.innerWidth <= mobileThreshold) {
   useConciseKeyboard.checked = true;
@@ -197,18 +299,10 @@ function updateRowText(rowId: number, inputBuffer: readonly string[]) {
 
     if (i == inputBuffer.length - 1) {
       // last cell with text
-      cell.animate(
-          [
-            { scale: 1 },
-            { scale: 1.1 },
-            { scale: 1 }
-          ],
-          {
-            duration: 200,
-            easing: "ease"
-          }
-        );
-      
+      cell.animate([{ scale: 1 }, { scale: 1.1 }, { scale: 1 }], {
+        duration: 200,
+        easing: "ease",
+      });
     }
   }
 }
@@ -274,6 +368,10 @@ function resetGameUi() {
 
   for (const id of ["any-message", "correct-answer", "answer-meaning"]) {
     document.getElementById(id)!.textContent = "";
+  }
+
+  for (const id of ["next-game", "share-result"]) {
+    document.getElementById(id)!.hidden = true;
   }
 
   if (focusTimeoutId !== undefined) {
