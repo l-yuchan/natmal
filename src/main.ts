@@ -13,6 +13,7 @@ let game: NatmalGame | undefined = new NatmalGame(
   await getValidWordList(),
 );
 let lastGameResult: GameResult | undefined;
+let notDaily = false;
 
 window.addEventListener("keydown", async (event: KeyboardEvent) => {
   if (
@@ -175,6 +176,7 @@ nextGameButton.addEventListener("click", async () => {
     ]);
 
     resetGameUi();
+    notDaily = true;
     game = new NatmalGame(answer, wordList);
   } finally {
     nextGameButton.disabled = false;
@@ -202,7 +204,8 @@ shareResultButton.addEventListener("click", async () => {
   // date
   const dateBaseY = 200;
   ctx.font = "bold 64px HanlimMyungjo";
-  ctx.fillText(new Date().toLocaleDateString('ko-KR'), 512, dateBaseY);
+  const dateComment = notDaily ? "랜덤 게임" : new Date().toLocaleDateString('ko-KR');
+  ctx.fillText(dateComment, 512, dateBaseY);
   // result
   const resultGridBaseY = dateBaseY + 80;
   for (let i = 0; i < 5; i++) {
@@ -252,11 +255,22 @@ shareResultButton.addEventListener("click", async () => {
   if (navigator.share && navigator.canShare(imageShareable)) {
     await navigator.share(imageShareable);
   } else {
+    // eslint-disable-next-line no-undef
     const clipItem = new ClipboardItem({
       "image/png": blob,
     });
-    navigator.clipboard.write([clipItem]);
-    showToast("결과 복사됨");
+    try {
+      await navigator.clipboard.write([clipItem]);
+      showToast("결과 복사됨");
+    } catch (e: any) {
+      // fallback to download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "낱말-" + new Date().toISOString() + ".png";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   }
 });
 
